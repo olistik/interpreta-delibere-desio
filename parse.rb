@@ -36,6 +36,17 @@ def extract_votes(text:, type:)
   result.to_i
 end
 
+def extract_named_votes(text:, type:)
+  result = text.downcase.match(/#{type}\sn\.\s?(\d+)/m)
+  return [] if !result
+  result = result[1]
+  return [] if !result
+  count = result.to_i
+  result = text.downcase.match(/#{type}\sn\.\s?(\d+)\s?\(([a-z,\s]+)?\)/m)
+  return [] if !result
+  result[2].gsub(' e ', ', ').split(', ').sort
+end
+
 def parse(filename)
   puts "Filename: #{filename}"
   reader = PDF::Reader.new(filename)
@@ -56,12 +67,56 @@ def parse(filename)
   table = text.match(/CONSIGLIERI COMUNALI\n+N\s+COMPONENTE\s+P\s+A\s+N\s+COMPONENTE\s+P\s+A\n(.+)\n+Risultano presenti/m)[1]
 
   data[:people] = parse_table(table: table, paddings: paddings)
+  data[:people].each do |person|
+    if person[:name].downcase.include?('commatteo')
+      person[:name] = 'commatteo daniele mario'
+    end
+  end
 
   data[:votes] = {
     in_favor: extract_votes(text: text, type: "favorevoli"),
     opposed: extract_votes(text: text, type: "contrari"),
     abstained: extract_votes(text: text, type: "astenuti"),
   }
+
+  data[:named_votes] = {
+    in_favor: extract_named_votes(text: text, type: "favorevoli"),
+    opposed: extract_named_votes(text: text, type: "contrari"),
+    abstained: extract_named_votes(text: text, type: "astenuti"),
+  }
+  already_counted = []
+  [:in_favor, :opposed, :abstained].each do |type|
+    data[:named_votes][type].map! do |vote_name|
+      data[:people].
+        map {|person| person[:name].downcase}.
+        find do |name|
+          name.include?(vote_name)
+        end
+    end
+
+    if data[:votes][type] > 0 && data[:named_votes][type].any?
+      already_counted << data[:named_votes][type]
+    end
+  end
+
+  if already_counted.any?
+    already_counted.flatten!.map! do |vote_name|
+      data[:people].
+        map {|person| person[:name].downcase}.
+        find do |name|
+          name.include?(vote_name)
+        end
+    end
+  end
+  missing = data[:people].map do |person|
+    person[:name].downcase
+  end - already_counted
+
+  [:in_favor, :opposed, :abstained].each do |type|
+    if data[:votes][type] > 0 && data[:named_votes][type].empty?
+      data[:named_votes][type] = missing
+    end
+  end
 
   data[:passed] = data[:votes][:in_favor] > data[:votes][:opposed]
   data
