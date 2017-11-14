@@ -38,13 +38,8 @@ end
 
 def parse(filename)
   puts "Filename: #{filename}"
-  io     = open(filename)
-  reader = PDF::Reader.new(io)
-  text = []
-  reader.pages.each do |page|
-    text << page.text
-  end
-  text = text.flatten.join("\n")
+  reader = PDF::Reader.new(filename)
+  text = reader.pages.map(&:text).join
 
   paddings = text.
     match(/^N\s+COMPONENTE(\s+)P(\s+)A\s+N\s+COMPONENTE(\s+)P(\s+)A.*$/)[1..4].
