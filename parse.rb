@@ -15,7 +15,7 @@ def parse_column(column:, paddings:)
 
   column.map do |line|
     {
-      name: line.match(/([A-Z\s]+)X/)[1].strip,
+      name: line.match(/([A-Z\s]+)[XSN]/)[1].strip,
       was_present: line.length == 'COMPONENTE'.length + paddings[0],
     }
   end
