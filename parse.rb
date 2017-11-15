@@ -44,7 +44,7 @@ def extract_named_votes(text:, type:)
   count = result.to_i
   result = text.downcase.match(/#{type}\sn\.\s?(\d+)\s?\(([a-z,\s]+)?\)/m)
   return [] if !result
-  result[2].gsub(' e ', ', ').split(', ').sort
+  result[2].gsub("\n", " ").gsub(' e ', ', ').split(', ').sort
 end
 
 def parse(filename)
