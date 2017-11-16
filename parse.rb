@@ -108,7 +108,9 @@ def parse(filename)
         end
     end
   end
-  missing = data[:people].map do |person|
+  missing = data[:people].reject do |person|
+    person[:was_present] == false
+  end.map do |person|
     person[:name].downcase
   end - already_counted
 
